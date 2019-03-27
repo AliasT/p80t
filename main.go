@@ -1,11 +1,10 @@
 package main
 
-// 读写本地配置文件json
-
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/cbednarski/hostess"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net"
 	"os"
@@ -37,7 +36,32 @@ func main() {
 			fmt.Println("exists a server refer to local")
 		}
 	}
+
+	Serve()
 }
+
+func Serve() {
+	r := gin.Default()
+	r.Use(Transfer())
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+	r.Run() // listen and serve on 0.0.0.0:8080
+}
+
+// middleware
+func Transfer() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Write([]byte("hello"))
+		c.Abort()
+		return
+		// c.Next()
+	}
+}
+
+// 读写本地转发列表servers.json
 
 func ReadJSONConfig() (map[string]interface{}, error) {
 	file, err := os.Open("servers.json")
