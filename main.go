@@ -20,9 +20,7 @@ type Server struct {
 func main() {
 	hostsfile, _ := hostess.LoadHostfile()
 	// hostname := hostess.Hostname{"localhost", net.IPv4(127, 0, 0, 1), true, false}
-
 	servers, _ := ReadJSONConfig()
-
 	Serve(hostsfile, servers)
 }
 
