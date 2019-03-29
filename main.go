@@ -40,13 +40,20 @@ func Serve(hostfile *hostess.Hostfile, servers *[]Server) {
 // Transfer 将不同域名的请求转发至配置文件的指定端口
 func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		target := "https://baidu.com"
-		if c.Request.Host == "gui.xiaoma.cn" {
-			target = "https://sohu.com"
+		host := c.Request.Host
+		var url string
+		for _, server := range *servers {
+			if host == server.host {
+				url = fmt.Sprintf("http://localhost:%d%s", int(server.port), c.Request.RequestURI)
+				break
+			}
 		}
-		res, _ := http.Get(target)
+		fmt.Println("####", url)
+		res, _ := http.Get(url)
 		bytes, _ := ioutil.ReadAll(res.Body)
+		c.Writer.WriteHeader(200)
 		c.Writer.Write(bytes)
+		// defer res.Body.Close()
 		c.Abort()
 		return
 		// c.Next()
@@ -55,22 +62,17 @@ func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 
 // ReadJSONConfig 读写本地转发列表servers.json
 func ReadJSONConfig() (*[]Server, error) {
-	file, err := os.Open("servers.json")
 	var servers map[string]interface{}
-	bytes, err := ioutil.ReadAll(file)
+	var structuredServers []Server
 
-	if err != nil {
-		//
-	}
+	file, _ := os.Open("servers.json")
+	bytes, _ := ioutil.ReadAll(file)
 
 	json.Unmarshal(bytes, &servers)
-	structuredServers := make([]Server, len(servers))
 	for name, s := range servers {
 		server := s.(map[string]interface{})
-		_ = append(structuredServers, Server{name, server["host"].(string), server["port"].(float64)})
+		structuredServers = append(structuredServers, Server{name, server["host"].(string), server["port"].(float64)})
 	}
-
-	fmt.Print(structuredServers)
 
 	defer file.Close()
 
