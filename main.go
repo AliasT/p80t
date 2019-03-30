@@ -19,7 +19,6 @@ type Server struct {
 
 func main() {
 	hostsfile, _ := hostess.LoadHostfile()
-	// hostname := hostess.Hostname{"localhost", net.IPv4(127, 0, 0, 1), true, false}
 	servers, _ := ReadJSONConfig()
 	Serve(hostsfile, servers)
 }
@@ -33,7 +32,6 @@ func Serve(hostfile *hostess.Hostfile, servers *[]Server) {
 			"message": "pong",
 		})
 	})
-	// listen and serve on 0.0.0.0:8080
 	r.Run(":80")
 }
 
@@ -42,6 +40,8 @@ func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var url string
 		var port int
+		var res *http.Response
+
 		for _, server := range *servers {
 			if c.Request.Host == server.host {
 				port = int(server.port)
@@ -50,19 +50,20 @@ func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 			}
 		}
 
-		fmt.Println(c.Request.Header.Get("Accept"))
-		var res *http.Response
 		res, _ = http.Get(url)
+		defer res.Body.Close()
+
 		if res.StatusCode == 404 {
 			res, _ = http.Get(fmt.Sprintf("http://localhost:%d", port))
+			defer res.Body.Close()
 		}
+
 		bytes, _ := ioutil.ReadAll(res.Body)
 		c.Writer.WriteHeader(200)
 		c.Writer.Write(bytes)
-		// defer res.Body.Close()
+
 		c.Abort()
 		return
-		// c.Next()
 	}
 }
 
