@@ -6,6 +6,7 @@ import (
 	"github.com/cbednarski/hostess"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 )
@@ -19,7 +20,7 @@ type Server struct {
 
 func main() {
 	hostsfile, _ := hostess.LoadHostfile()
-	servers, _ := ReadJSONConfig()
+	servers, _ := ReadJSONConfig(hostsfile)
 	Serve(hostsfile, servers)
 }
 
@@ -63,7 +64,7 @@ func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 }
 
 // ReadJSONConfig 读写本地转发列表servers.json
-func ReadJSONConfig() (*[]Server, error) {
+func ReadJSONConfig(hostfile *hostess.Hostfile) (*[]Server, error) {
 	var servers map[string]interface{}
 	var structuredServers []Server
 
@@ -73,8 +74,22 @@ func ReadJSONConfig() (*[]Server, error) {
 	json.Unmarshal(bytes, &servers)
 	for name, s := range servers {
 		server := s.(map[string]interface{})
-		structuredServers = append(structuredServers, Server{name, server["host"].(string), server["port"].(float64)})
+		host := server["host"].(string)
+		port := server["port"].(float64)
+		ip := net.IPv4(127, 0, 0, 1)
+
+		hostname := hostess.Hostname{
+			Domain:  host,
+			IP:      ip,
+			Enabled: true,
+			IPv6:    false,
+		}
+
+		hostfile.Hosts.Add(&hostname)
+		structuredServers = append(structuredServers, Server{name, host, port})
 	}
+
+	hostfile.Save()
 
 	defer file.Close()
 
