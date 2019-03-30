@@ -70,8 +70,8 @@ func ReadJSONConfig(hostfile *hostess.Hostfile) (*[]Server, error) {
 
 	file, _ := os.Open("servers.json")
 	bytes, _ := ioutil.ReadAll(file)
-
 	json.Unmarshal(bytes, &servers)
+
 	for name, s := range servers {
 		server := s.(map[string]interface{})
 		host := server["host"].(string)
@@ -90,7 +90,6 @@ func ReadJSONConfig(hostfile *hostess.Hostfile) (*[]Server, error) {
 	}
 
 	hostfile.Save()
-
 	defer file.Close()
 
 	return &structuredServers, nil
