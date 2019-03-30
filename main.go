@@ -40,16 +40,22 @@ func Serve(hostfile *hostess.Hostfile, servers *[]Server) {
 // Transfer 将不同域名的请求转发至配置文件的指定端口
 func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		host := c.Request.Host
 		var url string
+		var port int
 		for _, server := range *servers {
-			if host == server.host {
-				url = fmt.Sprintf("http://localhost:%d%s", int(server.port), c.Request.RequestURI)
+			if c.Request.Host == server.host {
+				port = int(server.port)
+				url = fmt.Sprintf("http://localhost:%d%s", port, c.Request.RequestURI)
 				break
 			}
 		}
-		fmt.Println("####", url)
-		res, _ := http.Get(url)
+
+		fmt.Println(c.Request.Header.Get("Accept"))
+		var res *http.Response
+		res, _ = http.Get(url)
+		if res.StatusCode == 404 {
+			res, _ = http.Get(fmt.Sprintf("http://localhost:%d", port))
+		}
 		bytes, _ := ioutil.ReadAll(res.Body)
 		c.Writer.WriteHeader(200)
 		c.Writer.Write(bytes)
