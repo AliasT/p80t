@@ -27,11 +27,6 @@ func main() {
 func Serve(hostfile *hostess.Hostfile, servers *[]Server) {
 	r := gin.Default()
 	r.Use(Transfer(hostfile, servers))
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
 	r.Run(":80")
 }
 
