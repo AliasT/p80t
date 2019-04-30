@@ -5,4 +5,6 @@
 
 ```
 http://test-m-world.xiaomawang.com --> localhost:3000
+
+http://test-world.xiaomawang.com --> localhost:8012
 ```
