@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cbednarski/hostess"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 )
 
@@ -18,52 +20,32 @@ type Server struct {
 	port float64
 }
 
-func main() {
-	hostsfile, _ := hostess.LoadHostfile()
-	servers, _ := ReadJSONConfig(hostsfile)
-	Serve(hostsfile, servers)
+// BaseHandle proxy base
+type BaseHandle struct {
+	servers *[]Server
 }
 
-// Serve 本地运行的gin服务器
-func Serve(hostfile *hostess.Hostfile, servers *[]Server) {
-	r := gin.Default()
-	r.Use(Transfer(hostfile, servers))
-	r.Run(":80")
-}
-
-// Transfer 将不同域名的请求转发至配置文件的指定端口
-func Transfer(hostfile *hostess.Hostfile, servers *[]Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var url string
-		var port int
-		var res *http.Response
-
-		for _, server := range *servers {
-			if c.Request.Host == server.host {
-				port = int(server.port)
-				url = fmt.Sprintf("http://localhost:%d%s", port, c.Request.RequestURI)
-				break
-			}
+// ServeHTTP
+// https://stackoverflow.com/questions/21055182/golang-reverse-proxy-with-multiple-apps
+func (h *BaseHandle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Bridge", "Golang Http Proxy")
+	for _, server := range *h.servers {
+		// 如果请求的主机地址符合条件, 转发至本地端口
+		if r.Host == server.host {
+			port := int(server.port)
+			target := fmt.Sprintf("http://localhost:%d", port)
+			remote, _ := url.Parse(target)
+			proxy := httputil.NewSingleHostReverseProxy(remote)
+			proxy.ServeHTTP(w, r)
+			break
 		}
-
-		res, _ = http.Get(url)
-		defer res.Body.Close()
-
-		if res.StatusCode == 404 {
-			res, _ = http.Get(fmt.Sprintf("http://localhost:%d", port))
-			defer res.Body.Close()
-		}
-
-		bytes, _ := ioutil.ReadAll(res.Body)
-		c.Writer.WriteHeader(200)
-		c.Writer.Write(bytes)
-
-		c.Abort()
-		return
 	}
+
+	w.Write([]byte("没有符合条件的转发 ！"))
 }
 
 // ReadJSONConfig 读写本地转发列表servers.json
+// 将列表中的域名动态写入hosts文件
 func ReadJSONConfig(hostfile *hostess.Hostfile) (*[]Server, error) {
 	var servers map[string]interface{}
 	var structuredServers []Server
@@ -93,4 +75,19 @@ func ReadJSONConfig(hostfile *hostess.Hostfile) (*[]Server, error) {
 	hostfile.Save()
 
 	return &structuredServers, nil
+}
+
+func main() {
+	hostsfile, _ := hostess.LoadHostfile()
+	servers, _ := ReadJSONConfig(hostsfile)
+
+	h := &BaseHandle{servers}
+	http.Handle("/", h)
+
+	server := &http.Server{
+		Addr:    ":80",
+		Handler: h,
+	}
+
+	log.Fatal(server.ListenAndServe())
 }

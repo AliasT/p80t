@@ -1,6 +1,10 @@
 {
   "scratch3": {
-    "host": "gui.xiaoma.cn",
-    "port": 1024
+    "host": "test-m-world.xiaomawang.com",
+    "port": 3000
+  },
+  "community": {
+    "host": "test-world.xiaomawang.com",
+    "port": 8012
   }
 }
