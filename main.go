@@ -26,7 +26,7 @@ type BaseHandle struct {
 }
 
 // ServeHTTP
-// https://stackoverflow.com/questions/21055182/golang-reverse-proxy-with-multiple-apps
+// https://stackoverflow.com/questions/21055182/golang-reverse-proxy-with-multiple-apps/47615151#47615151
 func (h *BaseHandle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Bridge", "Golang Http Proxy")
 	for _, server := range *h.servers {
