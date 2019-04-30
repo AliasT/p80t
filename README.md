@@ -1,8 +1,10 @@
-# p80t
+# p80
 
-解决前端开发多项目 80 端口不够用的问题
+1. 自动添加 servers.json 文件到 hosts 文件
+2. 将对应host的地址转发至本地端口
 
-1. 图片安全域名访问
-2. 和线上一致的访问 url
-3. 可多重配置
-4. 依赖 hostess 库
+```
+http://test-m-world.xiaomawang.com --> localhost:3000
+
+http://test-world.xiaomawang.com --> localhost:8012
+```
